@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS·EDU | Basquetebol Interativo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+        :root {
+            /* Variáveis Modo Escuro (Padrão) */
+            --neon: #00E676;
+            --neon-dim: #00BFA5;
+            --neon-soft: #69F0AE;
+            --deep: #0A0F0A;
+            --surface: #0D1A0F;
+            --glass: rgba(0, 230, 118, 0.04);
+            --glass-hover: rgba(0, 230, 118, 0.09);
+            --border: rgba(0, 230, 118, 0.18);
+            --border-hot: rgba(0, 230, 118, 0.55);
+            --text: #E8F5E9;
+            --muted: rgba(232, 245, 233, 0.55);
+            --alert: #FF6D00;
+            --danger: #FF1744;
+            --gold: #FFD740;
+            --hud-bg: rgba(0, 0, 0, 0.70);
+            --progress-bg: rgba(0, 0, 0, 0.4);
+            --grid-color: rgba(0, 230, 118, 0.03);
+            --card-shadow: 0 4px 40px rgba(0, 0, 0, 0.4);
+            --audio-filter: invert(1) hue-rotate(90deg);
+        }
+
+        [data-theme="light"] {
+            /* Variáveis Modo Claro */
+            --neon: #00964D;
+            --neon-dim: #00796B;
+            --neon-soft: #00897B;
+            --deep: #F4F9F4;
+            --surface: #FFFFFF;
+            --glass: rgba(255, 255, 255, 0.85);
+            --glass-hover: rgba(255, 255, 255, 1);
+            --border: rgba(0, 150, 77, 0.2);
+            --border-hot: rgba(0, 150, 77, 0.6);
+            --text: #1A251A;
+            --muted: #5A6D5A;
+            --hud-bg: rgba(244, 249, 244, 0.85);
+            --progress-bg: rgba(255, 255, 255, 0.6);
+            --grid-color: rgba(0, 150, 77, 0.08);
+            --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            --audio-filter: none;
+        }
+
+        body {
+            background-color: var(--deep);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+            transition: background-color 0.4s, color 0.4s;
+        }
+
+        h1, h2, h3, .hud-font { font-family: 'Orbitron', monospace; }
+
+        /* Fundo Animado */
+        #bg-grid {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 48px 48px;
+            animation: gridDrift 30s linear infinite;
+            transition: background-image 0.4s;
+        }
+        @keyframes gridDrift {
+            from { background-position: 0 0; }
+            to { background-position: 48px 48px; }
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: .10; z-index: 0; pointer-events: none; transition: background 0.4s; }
+        .orb-1 { width: 500px; height: 500px; background: var(--neon); top: -10%; left: -10%; }
+        .orb-2 { width: 400px; height: 400px; background: var(--neon-dim); bottom: -5%; right: -5%; }
+        .orb-3 { width: 300px; height: 300px; background: var(--neon-soft); top: 40%; left: 50%; }
+
+        /* App Container */
+        #app {
+            position: relative; z-index: 1;
+            max-width: 740px; margin: 0 auto;
+            padding: 28px 16px 80px;
+        }
+
+        /* Header HUD */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--hud-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 0 30px rgba(0,0,0,.08);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 24px;
+            transition: background 0.4s, border-color 0.4s;
+        }
+        header::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 2px; background: linear-gradient(90deg, transparent, var(--neon), transparent);
+            animation: scanLine 3s ease-in-out infinite;
+        }
+        @keyframes scanLine { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+        .logo-area .nexus { font-family: 'Orbitron'; font-weight: 700; font-size: .75rem; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; }
+        .logo-area .title { font-family: 'Orbitron'; font-weight: 800; font-size: 1rem; color: var(--neon); text-shadow: 0 0 10px var(--border-hot); margin: 2px 0; }
+        .logo-area .prof { font-size: .75rem; color: var(--muted); }
+        
+        .header-controls { display: flex; align-items: center; gap: 12px; }
+        
+        .theme-btn {
+            background: rgba(0,0,0,0.05); border: 1px solid var(--border); border-radius: 50%;
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; cursor: pointer; transition: all 0.3s;
+        }
+        .theme-btn:hover { background: var(--glass-hover); border-color: var(--neon); transform: scale(1.1); }
+
+        .score-badge {
+            background: var(--glass); border: 1px solid var(--border-hot);
+            border-radius: 50px; padding: 6px 18px;
+            font-family: 'Orbitron'; font-weight: 700; color: var(--neon);
+            box-shadow: inset 0 0 8px rgba(0,0,0,.05);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+        @keyframes pulse-badge {
+            0%,100%{box-shadow: 0 0 10px var(--glass)}
+            50%{box-shadow: 0 0 20px var(--border)}
+        }
+
+        /* Progress Scanner */
+        .progress-container {
+            background: var(--progress-bg); padding: 10px 24px;
+            border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
+            transition: background 0.4s;
+        }
+        .progress-info { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .progress-info .label { font-family: 'Orbitron'; font-weight: 600; font-size: .7rem; letter-spacing: 2px; color: var(--neon); text-transform: uppercase; }
+        .progress-info .pct { font-family: 'Orbitron'; font-weight: 700; color: var(--neon-soft); font-size: .8rem; }
+        .progress-track { height: 6px; border-radius: 50px; background: rgba(128,128,128,.2); border: 1px solid var(--border); overflow: hidden; }
+        #progressBar {
+            height: 100%; border-radius: 50px; width: 0%;
+            background: linear-gradient(90deg, #00695C, var(--neon), var(--neon-soft));
+            box-shadow: 0 0 10px var(--neon);
+            transition: width .7s cubic-bezier(.4,0,.2,1); position: relative;
+        }
+        #progressBar::after {
+            content:''; position: absolute; inset: 0;
+            background: linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+            animation: shimmer 2s linear infinite;
+        }
+        @keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+
+        /* Telas */
+        .screen { display: none; opacity: 0; transition: opacity 0.4s ease; }
+        .screen.active { display: block; opacity: 1; animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Componentes Comuns */
+        .btn-main {
+            background: linear-gradient(135deg, #00695C, var(--neon)); border: none; border-radius: 50px;
+            padding: 16px 48px; font-family: 'Orbitron'; font-weight: 700; font-size: .9rem;
+            letter-spacing: 2px; color: #0A0F0A; cursor: pointer; display: block; margin: 30px auto;
+            box-shadow: 0 4px 24px var(--border); transition: all .3s;
+            animation: ctaPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes ctaPulse { 0%,100%{ box-shadow: 0 4px 24px var(--border) } 50%{ box-shadow: 0 4px 40px var(--border-hot), 0 0 40px var(--glass) } }
+        .btn-main:hover { transform: translateY(-3px) scale(1.04); }
+
+        .btn-outline {
+            background: transparent; border: 1px solid var(--border-hot); border-radius: 50px;
+            padding: 12px 28px; font-family: 'Orbitron'; font-size: .75rem; letter-spacing: 1.5px;
+            color: var(--neon); cursor: pointer; transition: all .3s;
+        }
+        .btn-outline:hover { background: var(--glass); box-shadow: 0 0 16px var(--border); }
+        
+        .lesson-card, .quiz-wrap {
+            background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border); border-radius: 24px; padding: 32px 28px;
+            box-shadow: var(--card-shadow), inset 0 1px 0 var(--border);
+            margin-bottom: 24px; position: relative; transition: all 0.4s;
+        }
+
+        /* Screen 0 - Inicial */
+        .hero-emoji { font-size: 5rem; text-align: center; margin: 20px 0; animation: floatGlow 3s ease-in-out infinite; }
+        @keyframes floatGlow { 0%,100%{transform:translateY(0);filter:drop-shadow(0 0 8px var(--neon))} 50%{transform:translateY(-10px);filter:drop-shadow(0 0 20px var(--neon))} }
+        .hero-title { font-family: 'Orbitron'; font-weight: 900; font-size: 2.2rem; text-align: center; background: linear-gradient(135deg, var(--neon-soft), var(--neon), var(--neon-dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 10px 0; filter: drop-shadow(0 0 8px var(--glass)); }
+        .hero-subtitle { text-align: center; color: var(--muted); font-size: .95rem; margin-bottom: 5px; }
+        
+        .modules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; margin: 28px 0; }
+        .mod-card { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 20px 16px; text-align: center; transition: all .3s; position: relative; cursor: default; }
+        .mod-card:hover { border-color: var(--border-hot); background: var(--glass-hover); transform: translateY(-6px) scale(1.02); box-shadow: 0 8px 32px var(--glass); }
+        .mod-card h3 { color: var(--neon); margin: 0 0 10px 0; font-size: 1.5rem; }
+        
+        .podcast-section { border: 1px solid var(--border); border-radius: 20px; background: var(--glass); padding: 20px 24px; text-align: center; transition: background 0.4s; }
+        #podcastPlayer { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .5s ease, opacity .4s; }
+        #podcastPlayer.open { max-height: 200px; opacity: 1; margin-top: 15px; }
+        audio { width: 100%; filter: var(--audio-filter); margin-top: 10px; transition: filter 0.4s; }
+
+        /* Quiz UI */
+        .option-btn {
+            display: flex; align-items: center; gap: 14px; width: 100%; background: var(--glass);
+            border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; margin: 8px 0;
+            font-family: 'Nunito'; font-size: .95rem; color: var(--text); cursor: pointer; text-align: left;
+            transition: all .25s ease;
+        }
+        .option-btn:hover:not(:disabled) { border-color: var(--border-hot); background: var(--glass-hover); transform: translateX(4px); }
+        .option-btn .letra { background: var(--glass); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-family: 'Orbitron'; font-weight: 700; color: var(--neon); font-size: .8rem; flex-shrink: 0; }
+        
+        .option-btn.correct { border-color: var(--neon); background: var(--glass-hover); box-shadow: 0 0 20px var(--glass); }
+        .option-btn.correct .letra { background: var(--neon); color: #0A0F0A; box-shadow: 0 0 10px var(--neon); }
+        .option-btn.wrong { border-color: var(--danger); background: rgba(255,23,68,.08); box-shadow: 0 0 16px rgba(255,23,68,.1); }
+        .option-btn.wrong .letra { background: var(--danger); color: white; }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        .feedback-box { border-radius: 14px; padding: 16px 20px; margin: 16px 0; font-weight: 700; display: none; }
+        .feedback-box.show { display: block; animation: fadeIn 0.4s; }
+        .feedback-box.correct-fb { background: var(--glass); border: 1px solid var(--border-hot); color: var(--neon-soft); }
+        .feedback-box.wrong-fb { background: rgba(255,23,68,.05); border: 1px solid rgba(255,23,68,.4); color: var(--danger); }
+
+        /* Info box */
+        .info-box {
+            background: rgba(255,109,0,.07); border: 1px solid rgba(255,109,0,.3);
+            border-radius: 16px; padding: 16px 20px; margin: 16px 0;
+            color: #E65100; border-left: 4px solid #FF6D00;
+        }
+        [data-theme="dark"] .info-box { color: #FFB74D; }
+        .info-box .tag { font-family: 'Orbitron'; font-size: .6rem; letter-spacing: 2px; color: #FF6D00; }
+
+        /* Toast XP */
+        #xp-toast {
+            position: fixed; top: 80px; right: 24px; z-index: 9999;
+            background: linear-gradient(135deg, #00695C, var(--neon)); color: #0A0F0A;
+            font-family: 'Orbitron'; font-weight: 900; font-size: 1rem; letter-spacing: 2px;
+            padding: 12px 24px; border-radius: 50px; box-shadow: 0 0 30px var(--glass);
+            transform: translateX(160%); opacity: 0; transition: transform .4s cubic-bezier(.175,.885,.32,1.275), opacity .3s;
+        }
+        #xp-toast.show { transform: translateX(0); opacity: 1; }
+
+        /* Dashboard Final */
+        .trophy { font-size: 5rem; text-align: center; margin-bottom: 20px; animation: trophyBounce 2s ease-in-out infinite; }
+        @keyframes trophyBounce { 0%,100%{ transform:scale(1) translateY(0); filter:drop-shadow(0 0 16px var(--gold)) } 30%{ transform:scale(1.12) translateY(-14px); filter:drop-shadow(0 0 30px var(--gold)) } 60%{ transform:scale(.97) translateY(-4px) } }
+        
+        .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 24px 0; }
+        .stat-card { background: var(--glass); border: 1px solid var(--border); border-radius: 16px; padding: 20px 16px; text-align: center; transition: background 0.4s; }
+        .stat-card .val { font-family: 'Orbitron'; font-weight: 900; font-size: 2rem; margin-top: 5px; }
+
+        /* Regras table */
+        .rule-row {
+            display: flex; align-items: flex-start; gap: 12px;
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 12px; padding: 12px 16px; margin: 8px 0; transition: background 0.4s;
+        }
+        .rule-tag {
+            font-family: 'Orbitron'; font-size: .6rem; letter-spacing: 1.5px; color: var(--neon);
+            background: var(--glass); border: 1px solid var(--border); border-radius: 6px;
+            padding: 4px 8px; white-space: nowrap; flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+            .orb { display: none; }
+            .hero-title { font-size: 1.6rem; }
+            .btn-main, .option-btn { padding: 12px 16px; font-size: .85rem; }
+            header { padding: 8px 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bg-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <header>
+        <div class="logo-area">
+            <div class="nexus">NEXUS·EDU</div>
+            <div class="title">🏀 Educação Física</div>
+            <div class="prof">Prof. André Oliveira</div>
+        </div>
+        <div class="header-controls">
+            <button class="theme-btn" onclick="toggleTheme()" id="themeIcon" title="Alternar Tema">☀️</button>
+            <div class="score-badge">⚡ <span id="scoreDisplay">0</span> <small>XP</small></div>
+        </div>
+    </header>
+
+    <div class="progress-container">
+        <div class="progress-info">
+            <span class="label" id="progressLabel">PORTAL DE ENTRADA</span>
+            <span class="pct" id="progressPct">0%</span>
+        </div>
+        <div class="progress-track">
+            <div id="progressBar"></div>
+        </div>
+    </div>
+
+    <div id="app">
+        <div id="xp-toast">⚡ +25 XP</div>
+
+        <div id="screen-0" class="screen active">
+            <div class="hero-emoji">🏀</div>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <span style="background: var(--glass); border: 1px solid var(--border-hot); border-radius: 50px; padding: 4px 16px; font-family: 'Orbitron'; font-size: .65rem; color: var(--neon);">[ MÓDULO INTERATIVO ]</span>
+            </div>
+            <h1 class="hero-title">Basquetebol</h1>
+            <p class="hero-subtitle">Educação Física · Prof. André Oliveira</p>
+            <p style="text-align:center; color: var(--neon-soft); font-size:.85rem;">Explore os módulos, responda os quizzes e acumule XP</p>
+
+            <div class="modules-grid">
+                <div class="mod-card"><h3>01</h3><div>🏛️</div><p style="font-weight:700; margin:10px 0;">História do Basquete</p></div>
+                <div class="mod-card"><h3>02</h3><div>🇧🇷</div><p style="font-weight:700; margin:10px 0;">Basquete no Brasil</p></div>
+                <div class="mod-card"><h3>03</h3><div>📋</div><p style="font-weight:700; margin:10px 0;">Regras Básicas</p></div>
+                <div class="mod-card"><h3>04</h3><div>🎯</div><p style="font-weight:700; margin:10px 0;">Fundamentos Técnicos</p></div>
+            </div>
+
+            <div class="podcast-section">
+                <button class="btn-outline" onclick="togglePodcast()">🎙️ PODCAST</button>
+                <p style="color:var(--muted); font-size:0.85rem; font-style:italic; margin-top:10px;">Escute o episódio exclusivo deste módulo</p>
+                <div id="podcastPlayer">
+                    <h4 style="color:var(--neon-soft); font-family:'Orbitron';">A História do Basquetebol</h4>
+                    <audio controls id="podcastAudio">
+                        <source src="O_basquete_nasceu_para_fugir_do_frio.m4a" type="audio/mp4">
+                    </audio>
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="goTo(1)">▶ INICIAR MÓDULO</button>
+        </div>
+
+        <div id="screen-1" class="screen">
+            <span style="display:inline-block; background:var(--glass); border:1px solid var(--border-hot); border-radius:50px; padding:5px 18px; font-family:'Orbitron'; font-size:.65rem; color:var(--neon); margin-bottom:15px;">◈ MÓDULO 1 / 4</span>
+            <h2 class="hud-font" style="font-size:1.55rem; margin-top:0;">História do <span style="color:var(--neon); text-shadow:0 0 10px var(--border-hot);">Basquetebol</span></h2>
+            
+            <div class="lesson-card">
+                <p>Em Dezembro de 1891, o professor de educação física canadense <strong style="color:var(--neon-soft);">James Naismith</strong>, do Springfield College, em Massachusetts, Estados Unidos, recebeu uma tarefa de seu diretor: criar um esporte que os alunos pudessem praticar em local fechado, pois o inverno rigoroso impedia a prática do Baseball e do Futebol Americano.</p>
+
+                <div class="info-box">
+                    <div class="tag">💡 DADO</div>
+                    <p style="margin:5px 0 0 0;">Naismith descartou jogos que usassem os pés ou com muito contato físico, pois o ginásio (piso de madeira) tornaria o jogo perigoso. O esporte deveria ter sentido coletivo.</p>
+                </div>
+
+                <p>Naismith escreveu as <strong style="color:var(--neon-soft);">treze regras básicas</strong> do jogo e pendurou um cesto de pêssegos a <strong style="color:var(--neon-soft);">10 pés (3,05 metros)</strong> de altura — a mesma utilizada até hoje. A quadra original possuía aproximadamente metade do tamanho atual.</p>
+
+                <p>Inicialmente, a bola tinha que ser retirada manualmente após cada ponto, o que se mostrou ineficaz. Um buraco foi perfurado no fundo da cesta e os cestos de pêssegos foram utilizados até <strong style="color:var(--neon-soft);">1906</strong>, quando foram substituídos por aros de metal com tabela. Uma bola de futebol era usada para acertar as cestas.</p>
+
+                <div class="info-box">
+                    <div class="tag">📅 MARCO</div>
+                    <p style="margin:5px 0 0 0;">A primeira partida oficial foi realizada no ginásio Armory Hill em <strong>11 de março de 1892</strong>. Nem Naismith nem seus alunos registraram a data exata do primeiro jogo — sabe-se apenas que foi em dezembro de 1891, antes do Natal.</p>
+                </div>
+
+                <p>Atualmente, o basquete internacional é organizado pela <strong style="color:var(--neon-soft);">FIBA – Federação Internacional de Basquetebol</strong>. O nome vem do inglês <em>basketball</em>, literalmente "bola no cesto". A modalidade feminina foi inserida pela professora <strong style="color:var(--neon-soft);">Senda Berenson (1868–1954)</strong>, e o esporte chegou ao Brasil em <strong style="color:var(--neon-soft);">1896</strong>, trazido pelo norte-americano Augusto Louis.</p>
+
+                <p>O momento de maior glória de Naismith veio quando o basquete foi incluído nos <strong style="color:var(--neon-soft);">Jogos Olímpicos de Berlim em 1936</strong>, e ele lançou ao alto a bola que iniciou o primeiro jogo de basquete nas Olimpíadas.</p>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <button class="btn-outline" onclick="goTo(0)">← VOLTAR</button>
+                <button class="btn-outline" style="background:linear-gradient(135deg,#00695C,var(--neon)); color:#0A0F0A; font-weight:700; border:none;" onclick="goTo(2)">RESPONDER QUIZ ›</button>
+            </div>
+        </div>
+
+        <div id="screen-2" class="screen">
+            <div class="quiz-wrap">
+                <span style="font-family:'Orbitron'; font-size:.65rem; background:rgba(255,109,0,.1); border:1px solid rgba(255,109,0,.4); color:#FF6D00; padding:4px 12px; border-radius:50px; letter-spacing:2px;">◈ AVALIAÇÃO</span>
+                <h3 class="hud-font">MÓDULO 1 — História do Basquete</h3>
+                
+                <div style="background:var(--glass); border-left:3px solid var(--neon); padding:16px; border-radius:12px; margin-bottom:20px;">
+                    Em que ano e por quem o basquetebol foi criado?
+                </div>
+
+                <div id="options-q1">
+                    <button class="option-btn" onclick="answer(this, 1, false)"><span class="letra">A</span>Em 1896, por Augusto Louis</button>
+                    <button class="option-btn" onclick="answer(this, 1, true)"><span class="letra">B</span>Em 1891, por James Naismith</button>
+                    <button class="option-btn" onclick="answer(this, 1, false)"><span class="letra">C</span>Em 1892, por Senda Berenson</button>
+                    <button class="option-btn" onclick="answer(this, 1, false)"><span class="letra">D</span>Em 1906, pela FIBA</button>
+                </div>
+
+                <div id="fb-q1" class="feedback-box"></div>
+                <button id="btn-next-q1" class="btn-main" style="display:none; width:100%; margin-top:20px;" onclick="goTo(3)">PRÓXIMO MÓDULO ›</button>
+            </div>
+        </div>
+
+        <div id="screen-3" class="screen">
+            <span style="display:inline-block; background:var(--glass); border:1px solid var(--border-hot); border-radius:50px; padding:5px 18px; font-family:'Orbitron'; font-size:.65rem; color:var(--neon); margin-bottom:15px;">◈ MÓDULO 2 / 4</span>
+            <h2 class="hud-font" style="font-size:1.55rem; margin-top:0;">Basquete no <span style="color:var(--neon); text-shadow:0 0 10px var(--border-hot);">Brasil</span></h2>
+
+            <div class="lesson-card">
+                <p>O Brasil foi o <strong style="color:var(--neon-soft);">quinto país do mundo</strong> a conhecer o basquetebol. O esporte foi apresentado aos brasileiros pelo professor <strong style="color:var(--neon-soft);">Augusto Shaw</strong>, norte-americano nascido em Clayville, Nova York, formado na Universidade de Yale, onde em 1892 teve seu primeiro contato com o basquete.</p>
+
+                <p>Em <strong style="color:var(--neon-soft);">1894</strong>, Shaw foi convidado a lecionar no <strong style="color:var(--neon-soft);">Mackenzie College</strong>, em São Paulo. Junto aos livros, levou consigo uma bola de basquetebol — que o acompanhava em qualquer viagem. O esporte foi apresentado e aprovado imediatamente, mas inicialmente os homens resistiram, pois já conheciam o futebol (chegado ao país um ano antes). As mulheres, porém, que eram impedidas de praticar o futebol pela mentalidade da época, aderiram ao basquete.</p>
+
+                <div class="info-box">
+                    <div class="tag">🏆 MARCO</div>
+                    <p style="margin:5px 0 0 0;">Ainda em 1896, o Professor Shaw formou a primeira equipe do Mackenzie College após convencer seus alunos de que o basquetebol poderia ser praticado por ambos os gêneros.</p>
+                </div>
+
+                <p>No Rio de Janeiro, em <strong style="color:var(--neon-soft);">1912</strong>, ocorreram os primeiros jogos de basquete na Rua da Quitanda. O <strong style="color:var(--neon-soft);">América Football Club</strong> foi o primeiro clube carioca a adotar o esporte, incentivado por <strong style="color:var(--neon-soft);">Henry J. Sims</strong>, diretor da Associação Cristã de Moços (ACM).</p>
+
+                <p>Em <strong style="color:var(--neon-soft);">1913</strong> aconteceu o primeiro grande momento do basquete brasileiro: uma equipe da ACM, usando o uniforme do América, jogou contra a seleção chilena. Caso a ACM vencesse, se tornaria o time de basquete do América. A partida terminou <strong style="color:var(--neon-soft);">5 x 4</strong> para a ACM, e o <strong style="color:var(--neon-soft);">América Football Club</strong> se tornou a primeira equipe brasileira de basquetebol.</p>
+
+                <div class="info-box">
+                    <div class="tag">📅 LINHA DO TEMPO</div>
+                    <p style="margin:5px 0 0 0;"><strong>1915</strong> — Primeiras regras traduzidas para o português. Primeiro torneio sul-americano pela ACM.<br>
+                    <strong>1916</strong> — Liga Metropolitana adota o basquete.<br>
+                    <strong>1919</strong> — Primeiro campeonato oficial, vencido pelo <strong>Flamengo</strong>.<br>
+                    <strong>1922</strong> — Primeira seleção brasileira, campeã dos Jogos Latino-Americanos.<br>
+                    <strong>1933</strong> — Fundação da CBB (então chamada Federação Brasileira de Basketball).</p>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <button class="btn-outline" onclick="goTo(2)">← VOLTAR</button>
+                <button class="btn-outline" style="background:linear-gradient(135deg,#00695C,var(--neon)); color:#0A0F0A; font-weight:700; border:none;" onclick="goTo(4)">RESPONDER QUIZ ›</button>
+            </div>
+        </div>
+
+        <div id="screen-4" class="screen">
+            <div class="quiz-wrap">
+                <span style="font-family:'Orbitron'; font-size:.65rem; background:rgba(255,109,0,.1); border:1px solid rgba(255,109,0,.4); color:#FF6D00; padding:4px 12px; border-radius:50px; letter-spacing:2px;">◈ AVALIAÇÃO</span>
+                <h3 class="hud-font">MÓDULO 2 — Basquete no Brasil</h3>
+                
+                <div style="background:var(--glass); border-left:3px solid var(--neon); padding:16px; border-radius:12px; margin-bottom:20px;">
+                    Qual foi o resultado da primeira grande partida de basquete no Brasil, em 1913, entre a ACM e a seleção chilena?
+                </div>
+
+                <div id="options-q2">
+                    <button class="option-btn" onclick="answer(this, 2, false)"><span class="letra">A</span>10 x 8 para o Chile</button>
+                    <button class="option-btn" onclick="answer(this, 2, false)"><span class="letra">B</span>3 x 1 para a ACM</button>
+                    <button class="option-btn" onclick="answer(this, 2, true)"><span class="letra">C</span>5 x 4 para a ACM</button>
+                    <button class="option-btn" onclick="answer(this, 2, false)"><span class="letra">D</span>7 x 2 para o Chile</button>
+                </div>
+
+                <div id="fb-q2" class="feedback-box"></div>
+                <button id="btn-next-q2" class="btn-main" style="display:none; width:100%; margin-top:20px;" onclick="goTo(5)">PRÓXIMO MÓDULO ›</button>
+            </div>
+        </div>
+
+        <div id="screen-5" class="screen">
+            <span style="display:inline-block; background:var(--glass); border:1px solid var(--border-hot); border-radius:50px; padding:5px 18px; font-family:'Orbitron'; font-size:.65rem; color:var(--neon); margin-bottom:15px;">◈ MÓDULO 3 / 4</span>
+            <h2 class="hud-font" style="font-size:1.55rem; margin-top:0;">Regras e <span style="color:var(--neon); text-shadow:0 0 10px var(--border-hot);">Posições</span></h2>
+
+            <div class="lesson-card">
+                <p><strong style="color:var(--neon-soft);">Objetivo:</strong> Introduzir a bola no cesto adversário (marcando pontos) e evitar que ela entre no próprio cesto.</p>
+
+                <p><strong style="color:var(--neon-soft);">Equipes e Posições:</strong> Duas equipes de 5 jogadores cada (mais 7 reservas), com três posições principais:</p>
+
+                <div class="rule-row"><span class="rule-tag">ARMADOR</span><span>Cérebro do time. Planeja as jogadas e geralmente começa com a bola.</span></div>
+                <div class="rule-row"><span class="rule-tag">ALA</span><span>Joga pelos cantos. Pode ajudar na armação ou converter cestas.</span></div>
+                <div class="rule-row"><span class="rule-tag">PIVÔ</span><span>Geralmente os mais altos e fortes. Capturam rebotes, fazem enterradas/bandejas e realizam bloqueios (tocos) na defesa.</span></div>
+
+                <p style="margin-top:20px;"><strong style="color:var(--neon-soft);">Duração do Jogo:</strong> Quatro períodos de 10 minutos de tempo útil. Intervalo de 15 minutos entre o 2º e 3º período; 2 minutos entre os demais. O cronômetro para sempre que o árbitro interrompe o jogo.</p>
+
+                <p><strong style="color:var(--neon-soft);">Início do Jogo:</strong> O árbitro lança a bola ao alto entre dois adversários no círculo central (jump ball).</p>
+
+                <p><strong style="color:var(--neon-soft);">Pontuação:</strong></p>
+                <div class="rule-row"><span class="rule-tag">1 PTO</span><span>Lance livre (arremesso da linha do garrafão após falta)</span></div>
+                <div class="rule-row"><span class="rule-tag">2 PTS</span><span>Cesto de campo dentro da linha de 3 pontos</span></div>
+                <div class="rule-row"><span class="rule-tag">3 PTS</span><span>Cesto realizado além da linha dos 3 pontos (a 6,25 m da cesta)</span></div>
+
+                <p style="margin-top:20px;"><strong style="color:var(--neon-soft);">Regras de Tempo:</strong></p>
+                <div class="rule-row"><span class="rule-tag">5 SEG</span><span>Jogador marcado não pode ficar parado com a bola por mais de 5 segundos.</span></div>
+                <div class="rule-row"><span class="rule-tag">3 SEG</span><span>Nenhum jogador pode permanecer na área restritiva adversária por mais de 3 segundos (enquanto o time tem a posse).</span></div>
+                <div class="rule-row"><span class="rule-tag">8 SEG</span><span>O time que ganha a bola na defesa tem 8 segundos para levá-la à zona de ataque.</span></div>
+                <div class="rule-row"><span class="rule-tag">24 SEG</span><span>O time na posse tem 24 segundos para arremessar ao cesto adversário.</span></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <button class="btn-outline" onclick="goTo(4)">← VOLTAR</button>
+                <button class="btn-outline" style="background:linear-gradient(135deg,#00695C,var(--neon)); color:#0A0F0A; font-weight:700; border:none;" onclick="goTo(6)">RESPONDER QUIZ ›</button>
+            </div>
+        </div>
+
+        <div id="screen-6" class="screen">
+            <div class="quiz-wrap">
+                <span style="font-family:'Orbitron'; font-size:.65rem; background:rgba(255,109,0,.1); border:1px solid rgba(255,109,0,.4); color:#FF6D00; padding:4px 12px; border-radius:50px; letter-spacing:2px;">◈ AVALIAÇÃO</span>
+                <h3 class="hud-font">MÓDULO 3 — Regras</h3>
+
+                <div style="background:var(--glass); border-left:3px solid var(--neon); padding:16px; border-radius:12px; margin-bottom:20px;">
+                    Quantos períodos tem uma partida oficial de basquetebol e qual é a duração de cada período?
+                </div>
+
+                <div id="options-q3">
+                    <button class="option-btn" onclick="answer(this, 3, false)"><span class="letra">A</span>2 períodos de 20 minutos</button>
+                    <button class="option-btn" onclick="answer(this, 3, false)"><span class="letra">B</span>4 períodos de 12 minutos</button>
+                    <button class="option-btn" onclick="answer(this, 3, true)"><span class="letra">C</span>4 períodos de 10 minutos</button>
+                    <button class="option-btn" onclick="answer(this, 3, false)"><span class="letra">D</span>3 períodos de 15 minutos</button>
+                </div>
+
+                <div id="fb-q3" class="feedback-box"></div>
+                <button id="btn-next-q3" class="btn-main" style="display:none; width:100%; margin-top:20px;" onclick="goTo(7)">PRÓXIMO MÓDULO ›</button>
+            </div>
+        </div>
+
+        <div id="screen-7" class="screen">
+            <span style="display:inline-block; background:var(--glass); border:1px solid var(--border-hot); border-radius:50px; padding:5px 18px; font-family:'Orbitron'; font-size:.65rem; color:var(--neon); margin-bottom:15px;">◈ MÓDULO 4 / 4</span>
+            <h2 class="hud-font" style="font-size:1.55rem; margin-top:0;">Fundamentos <span style="color:var(--neon); text-shadow:0 0 10px var(--border-hot);">Técnicos</span></h2>
+
+            <div class="lesson-card">
+                <p><strong style="color:var(--neon-soft);">Tipos de Passes:</strong></p>
+                <div class="rule-row"><span class="rule-tag">PEITO</span><span>Passe direto na altura do peito, com duas mãos.</span></div>
+                <div class="rule-row"><span class="rule-tag">OMBRO</span><span>Passe com uma mão na altura do ombro.</span></div>
+                <div class="rule-row"><span class="rule-tag">PICADO</span><span>Bola quicada no chão antes de chegar ao receptor.</span></div>
+                <div class="rule-row"><span class="rule-tag">CABEÇA</span><span>Passe executado acima da cabeça, com duas mãos.</span></div>
+
+                <p style="margin-top:20px;"><strong style="color:var(--neon-soft);">Tipos de Arremessos:</strong></p>
+                <div class="rule-row"><span class="rule-tag">BANDEJA</span><span>Arremesso onde a bola toca a tabela antes de entrar no aro.</span></div>
+                <div class="rule-row"><span class="rule-tag">JUMP</span><span>Saltar elevando a bola com ambas as mãos e executar o arremesso no pico do salto.</span></div>
+                <div class="rule-row"><span class="rule-tag">ENTERRADA</span><span>Salto e colocação firme da bola diretamente no aro, segurando com as mãos.</span></div>
+                <div class="rule-row"><span class="rule-tag">PONTE-AÉREA</span><span>Jogador lança a bola a um parceiro no ar, que finaliza antes de tocar o chão.</span></div>
+                <div class="rule-row"><span class="rule-tag">REBOTE</span><span>Recuperação da bola após um arremesso não convertido.</span></div>
+                <div class="rule-row"><span class="rule-tag">ASSISTÊNCIA</span><span>Passe certeiro que resulta diretamente em cesta de um companheiro.</span></div>
+
+                <p style="margin-top:20px;"><strong style="color:var(--neon-soft);">Faltas:</strong></p>
+                <div class="rule-row"><span class="rule-tag">PESSOAL</span><span>Envolve contato físico ilegal: obstrução, carregar, marcar pela retaguarda, segurar, empurrar, uso ilegal das mãos.</span></div>
+                <div class="rule-row"><span class="rule-tag">TÉCNICA</span><span>Sem contato físico, ex: contestar o árbitro com gestos ou linguagem ofensiva.</span></div>
+                <div class="rule-row"><span class="rule-tag">DE EQUIPE</span><span>Após a 4ª falta de equipe, cada nova falta pessoal resulta em 2 lances livres.</span></div>
+
+                <div class="info-box" style="margin-top:20px;">
+                    <div class="tag">⚠️ REGRA</div>
+                    <p style="margin:5px 0 0 0;">Um jogador que cometer <strong>5 faltas pessoais</strong> está automaticamente desqualificado da partida.<br>O jogador não pode executar mais de <strong>2 passos</strong> com a bola nas mãos sem driblar.<br>No drible, é proibido bater a bola com as duas mãos simultaneamente ou efetuar dois dribles consecutivos.</p>
+                </div>
+
+                <p style="margin-top:16px;"><strong style="color:var(--neon-soft);">Defesa:</strong></p>
+                <div class="rule-row"><span class="rule-tag">TOCO</span><span>Bloqueio ao movimento da bola enquanto ela está sendo arremessada ao cesto pelo adversário.</span></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <button class="btn-outline" onclick="goTo(6)">← VOLTAR</button>
+                <button class="btn-outline" style="background:linear-gradient(135deg,#00695C,var(--neon)); color:#0A0F0A; font-weight:700; border:none;" onclick="goTo(8)">AVALIAÇÃO FINAL ›</button>
+            </div>
+        </div>
+
+        <div id="screen-8" class="screen">
+            <div class="quiz-wrap">
+                <span style="font-family:'Orbitron'; font-size:.65rem; background:rgba(255,109,0,.1); border:1px solid rgba(255,109,0,.4); color:#FF6D00; padding:4px 12px; border-radius:50px;">◈ AVALIAÇÃO FINAL</span>
+                <h3 class="hud-font">MÓDULO 4 — Fundamentos Técnicos</h3>
+                <div style="background:var(--glass); border-left:3px solid var(--neon); padding:16px; border-radius:12px; margin-bottom:20px;">
+                    Quanto vale um arremesso realizado além da linha de 3 pontos no basquetebol?
+                </div>
+                <div id="options-q4">
+                    <button class="option-btn" onclick="answer(this, 4, false)"><span class="letra">A</span>1 ponto (lance livre)</button>
+                    <button class="option-btn" onclick="answer(this, 4, false)"><span class="letra">B</span>2 pontos</button>
+                    <button class="option-btn" onclick="answer(this, 4, true)"><span class="letra">C</span>3 pontos</button>
+                    <button class="option-btn" onclick="answer(this, 4, false)"><span class="letra">D</span>4 pontos</button>
+                </div>
+                <div id="fb-q4" class="feedback-box"></div>
+                <button id="btn-next-q4" class="btn-main" style="display:none; width:100%; margin-top:20px;" onclick="showFinal()">VER DESEMPENHO 🏆</button>
+            </div>
+        </div>
+
+        <div id="screen-9" class="screen">
+            <div class="trophy" id="finalTrophy">🏆</div>
+            <div class="lesson-card" style="text-align:center;">
+                <span style="font-family:'Orbitron'; font-size:.65rem; background:rgba(255,215,64,.1); border:1px solid rgba(255,215,64,.4); color:var(--gold); padding:4px 12px; border-radius:50px;">◈ MISSÃO CONCLUÍDA</span>
+                <h2 class="hud-font" style="font-size:1.2rem; margin:16px 0 8px;">DESEMPENHO FINAL</h2>
+                <h2 class="hud-font" style="font-size:3.5rem; margin:10px 0; background:linear-gradient(135deg, var(--neon-soft), var(--neon)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;" id="finalScoreTxt">0/4</h2>
+                <div style="height:8px; background:var(--glass); border-radius:50px; overflow:hidden; margin:20px 0;">
+                    <div id="finalXpBar" style="height:100%; width:0%; background:linear-gradient(90deg,#00695C,var(--neon)); box-shadow:0 0 12px var(--neon); transition:width 1s ease-out;"></div>
+                </div>
+                <p id="finalMsg" style="color:var(--muted); font-weight:600;">Completado.</p>
+                
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div style="font-family:'Orbitron'; font-size:.6rem; color:var(--muted);">ACERTOS</div>
+                        <div class="val" style="color:var(--neon); text-shadow:0 0 10px var(--glass);" id="statCorrect">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div style="font-family:'Orbitron'; font-size:.6rem; color:var(--muted);">ERROS</div>
+                        <div class="val" style="color:var(--danger); text-shadow:0 0 10px rgba(255,23,68,.2);" id="statWrong">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div style="font-family:'Orbitron'; font-size:.6rem; color:var(--muted);">TOTAL XP</div>
+                        <div class="val" style="color:var(--gold); text-shadow:0 0 10px rgba(255,215,64,.2);" id="statXP">0</div>
+                    </div>
+                </div>
+
+                <div style="background:rgba(255,215,64,.05); border:1px solid rgba(255,215,64,.3); padding:20px; border-radius:20px; margin-bottom:20px;">
+                    <button class="btn-outline" style="border-color:rgba(255,215,64,.5); color:var(--gold); width:100%; box-shadow: 0 0 15px rgba(255,215,64,.1);" onclick="toggleMusic()" id="btnMusic">🎵 cesta_de_três</button>
+                    <audio id="bgMusic" loop>
+                        <source src="Três_Metros_e_Cinco.mp3" type="audio/mpeg">
+                    </audio>
+                </div>
+
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button class="btn-outline" onclick="restart()">↺ REINICIAR</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Inicialização do Tema
+        const currentTheme = localStorage.getItem('nexus-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        updateThemeIcon(currentTheme);
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('nexus-theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Lógica do App
+        let score = 0, correct = 0, wrong = 0;
+        let answered = {};
+        let musicPlaying = false;
+        
+        const progressMap = {
+            0:{pct:0,  label:"PORTAL DE ENTRADA"},
+            1:{pct:10, label:"MÓDULO 01 — História"},
+            2:{pct:22, label:"AVALIAÇÃO 01"},
+            3:{pct:35, label:"MÓDULO 02 — Brasil"},
+            4:{pct:47, label:"AVALIAÇÃO 02"},
+            5:{pct:60, label:"MÓDULO 03 — Regras"},
+            6:{pct:72, label:"AVALIAÇÃO 03"},
+            7:{pct:85, label:"MÓDULO 04 — Fundamentos"},
+            8:{pct:93, label:"AVALIAÇÃO FINAL"},
+            9:{pct:100,label:"MISSÃO CONCLUÍDA"}
+        };
+
+        function goTo(n) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-'+n).classList.add('active');
+            window.scrollTo({top:0, behavior:'smooth'});
+            
+            if(progressMap[n] !== undefined) {
+                document.getElementById('progressBar').style.width = progressMap[n].pct + '%';
+                document.getElementById('progressPct').textContent = progressMap[n].pct + '%';
+                document.getElementById('progressLabel').textContent = progressMap[n].label;
+            }
+        }
+
+        function answer(btn, qid, isCorrect) {
+            if(answered[qid]) return;
+            answered[qid] = true;
+            
+            const options = document.getElementById('options-q'+qid).querySelectorAll('.option-btn');
+            options.forEach(o => o.disabled = true);
+            
+            const fbBox = document.getElementById('fb-q'+qid);
+            fbBox.classList.add('show');
+            
+            if(isCorrect) {
+                btn.classList.add('correct');
+                score += 25; correct++;
+                document.getElementById('scoreDisplay').textContent = score;
+                showXP();
+                fbBox.classList.add('correct-fb');
+                fbBox.innerHTML = "✅ Resposta Correta! Excelente trabalho.";
+            } else {
+                btn.classList.add('wrong');
+                wrong++;
+                options.forEach(o => {
+                    if(o.getAttribute('onclick').includes('true')) o.classList.add('correct');
+                });
+                fbBox.classList.add('wrong-fb');
+                fbBox.innerHTML = "❌ Resposta Incorreta. Revise o material deste módulo.";
+            }
+            
+            document.getElementById('btn-next-q'+qid).style.display = 'block';
+        }
+
+        function showXP() {
+            const toast = document.getElementById('xp-toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1800);
+        }
+
+        function showFinal() {
+            goTo(9);
+            document.getElementById('finalScoreTxt').textContent = correct + "/4";
+            document.getElementById('statCorrect').textContent = correct;
+            document.getElementById('statWrong').textContent = wrong;
+            document.getElementById('statXP').textContent = score;
+            
+            setTimeout(() => {
+                document.getElementById('finalXpBar').style.width = (correct/4 * 100) + '%';
+            }, 300);
+
+            const msg = document.getElementById('finalMsg');
+            const trophy = document.getElementById('finalTrophy');
+            if(correct === 4)      { msg.textContent="Performance excepcional! Craque do basquete! 🏀"; trophy.textContent="🥇"; }
+            else if(correct >= 3)  { msg.textContent="Excelente desempenho. Quase perfeito!"; trophy.textContent="🏆"; }
+            else if(correct >= 2)  { msg.textContent="Bom trabalho! Revise os módulos e tente novamente."; trophy.textContent="🥉"; }
+            else                   { msg.textContent="Continue treinando. Releia os módulos com atenção."; trophy.textContent="📖"; }
+        }
+
+        function restart() {
+            score = correct = wrong = 0; answered = {};
+            document.getElementById('scoreDisplay').textContent = '0';
+            
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('correct', 'wrong');
+                btn.disabled = false;
+            });
+            document.querySelectorAll('.feedback-box').forEach(fb => {
+                fb.className = 'feedback-box';
+                fb.innerHTML = '';
+            });
+            document.querySelectorAll('[id^=btn-next-q]').forEach(btn => btn.style.display = 'none');
+            
+            const bgMusic = document.getElementById('bgMusic');
+            bgMusic.pause(); bgMusic.currentTime = 0; musicPlaying = false;
+            document.getElementById('btnMusic').textContent = "🎵 Ritmo_da_Brincadeira";
+            
+            goTo(0);
+        }
+
+        function togglePodcast() {
+            document.getElementById('podcastPlayer').classList.toggle('open');
+        }
+
+        function toggleMusic() {
+            const bgMusic = document.getElementById('bgMusic');
+            const btn = document.getElementById('btnMusic');
+            if(!musicPlaying) {
+                bgMusic.play(); bgMusic.volume = 0.4;
+                btn.textContent = "⏸ PAUSAR"; musicPlaying = true;
+            } else {
+                bgMusic.pause();
+                btn.textContent = "🎵 Ritmo_da_Brincadeira"; musicPlaying = false;
+            }
+        }
+    </script>
+</body>
+</html>
